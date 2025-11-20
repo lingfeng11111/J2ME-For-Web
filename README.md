@@ -5,7 +5,7 @@
 <!-- Badges -->
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![Tests](https://img.shields.io/badge/tests-73%2F73-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-blue)
+![License](https://img.shields.io/badge/license-GLPv2-brightblue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)
 
 ---
