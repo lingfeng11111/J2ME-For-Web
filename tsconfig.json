@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    // ✅ 编译目标：ES2020
+    // 说明：虽然目标是 ES2020，但我们只使用 Node.js 12.18.3 (V8 7.8) 支持的特性
+    // - ✅ BigInt 和 BigInt 字面量 (从 Node.js 10.4.0 开始支持)
+    // - ✅ async/await, Promise, Class 等 ES2019 特性
+    // - ❌ 不使用 Optional Chaining (?.) 和 Nullish Coalescing (??) - 需要 Node.js 14+
+    // TypeScript 会将不支持的特性降级编译，但 BigInt 会保留为原生代码
+    "target": "ES2020",
+
+    // 模块规范：CommonJS
+    // 适配 Electron 11 主进程和渲染进程的默认加载方式
+    "module": "CommonJS",
+    "moduleResolution": "node",
+
+    // 类型定义库
+    // - ES2020: 提供 BigInt、Promise 等类型定义
+    // - DOM: 提供 TextDecoder、Canvas 等浏览器 API 类型
+    "lib": ["ES2020", "DOM"],
+
+    // 代码质量：启用严格模式
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "removeComments": true,
+    "experimentalDecorators": true,
+
+    // 目录结构
+    "outDir": "./dist",
+
+    // 源码映射
+    "sourceMap": true,
+    "declaration": true
+  },
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "**/*.spec.ts", "dist"]
+}

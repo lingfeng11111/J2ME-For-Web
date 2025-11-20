@@ -1,0 +1,29 @@
+{
+  "name": "j2me-for-web",
+  "version": "2.0.0",
+  "description": "Modern TypeScript J2ME Virtual Machine for Web",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsc -w",
+    "build": "tsc",
+    "dist:win": "electron-builder --win --x64",
+    "dist:mac": "electron-builder --mac --x64"
+  },
+  "keywords": [
+    "j2me",
+    "jvm",
+    "emulator",
+    "typescript"
+  ],
+  "author": "Lingfeng <3374080053@qq.com>",
+  "license": "GPL-2.0",
+  "devDependencies": {
+    "typescript": "^4.9.5",
+    "electron": "11.2.1",
+    "electron-builder": "^22.10.5",
+    "@types/node": "^12.20.55"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  }
+}
