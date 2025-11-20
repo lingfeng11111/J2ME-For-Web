@@ -26,19 +26,25 @@ export function registerObjectNatives(): void {
 
   // public native int hashCode();
   NativeRegistry.register(className, "hashCode", "()I", (frame, thread) => {
-    const thisObj = frame.locals[0] as JavaObject; // this 在局部变量表 0
-    // 简单的 hashCode 实现
-    // 实际应该存储在对象头或 WeakMap 中
-    frame.stack.push(12345);
+    const thisObj = frame.getLocal(0) as JavaObject;
+    if (!thisObj) {
+      throw new Error("NullPointerException");
+    }
+    
+    // 默认返回身份哈希码
+    frame.stack.push(thisObj.getIdentityHashCode());
   });
 
   // public final native Class getClass();
   NativeRegistry.register(className, "getClass", "()Ljava/lang/Class;", (frame, thread) => {
-    const thisObj = frame.locals[0] as JavaObject;
-    // TODO: 返回 Class 对象 (需要实现 java.lang.Class)
-    // 目前暂时返回 null 或抛出异常
-    // frame.stack.push(thisObj.classInfo.getClassObject());
-    frame.stack.push(null);
+    const thisObj = frame.getLocal(0) as JavaObject;
+    if (!thisObj) {
+      throw new Error("NullPointerException");
+    }
+    
+    // 返回对象的 Class 对象
+    const classObject = thisObj.getClassObject();
+    frame.stack.push(classObject);
   });
 
   // protected native Object clone() throws CloneNotSupportedException;

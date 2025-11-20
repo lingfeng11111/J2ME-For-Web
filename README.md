@@ -3,6 +3,7 @@
 > Run J2ME MIDlets in the browser with TypeScript and WebAssembly-free Java byte-code interpreter.
 
 <!-- Badges -->
+
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![Tests](https://img.shields.io/badge/tests-73%2F73-brightgreen)
 ![License](https://img.shields.io/badge/license-GPLv2-blue)
@@ -18,17 +19,20 @@ A hobby VM that boots real J2ME byte-code (CLDC 1.1 / MIDP 2.0 subset) inside mo
 
 ---
 
-## Current Status (Nov 2025-11-20)
+## Current Status (2025-11-20)
 
-| Component | Milestone |
-|-----------|-----------|
-| **Class-file loader** | CLDC 1.1 subset, big-endian, full constant-pool |
-| **Interpreter** | 73 byte-code instructions, Generator-based yield |
-| **Threading** | cooperative round-robin, Object.wait/notify |
-| **Native bridge** | JNI-style registry, System.arraycopy, currentTimeMillis |
-| **Arrays & Fields** | 8 primitive arrays, GET/PUT STATIC/FIELD |
-| **Long math** | BigInt native, 100× faster than old ASM.js |
-| **Build & Test** | `npm run build` + `npm test` – all green |    
+| Component             | Status         | Details                                                     |
+| --------------------- | -------------- | ----------------------------------------------------------- |
+| **Class-file loader** | ✅ Complete    | CLDC 1.1 subset, constant pool, fields, methods, attributes |
+| **Interpreter**       | ✅ Complete    | 73+ bytecode instructions, Generator-based execution        |
+| **Threading**         | ✅ Complete    | Cooperative scheduler, Object.wait/notify/notifyAll         |
+| **Native bridge**     | ✅ Complete    | JNI-style registry, System/Object native methods            |
+| **Object model**      | ✅ Complete    | JavaObject, JavaArray, JavaString with GC integration       |
+| **Reflection**        | ✅ Complete    | java.lang.Class, Object.getClass(), instanceof checks       |
+| **Long math**         | ✅ Complete    | Native BigInt, 100× faster than ASM.js                      |
+| **Arrays & Fields**   | ✅ Complete    | All primitive arrays, GETFIELD/PUTFIELD/GETSTATIC/PUTSTATIC |
+| **Build & Test**      | ✅ Passing     | TypeScript compilation + unit tests all green               |
+| **LCDUI Graphics**    | 🚧 In Progress | Display, Canvas, Graphics API (next milestone)              |
 
 ---
 
@@ -36,7 +40,7 @@ A hobby VM that boots real J2ME byte-code (CLDC 1.1 / MIDP 2.0 subset) inside mo
 
 ### Prerequisites
 
-- Node.js 12.20.55+ 
+- Node.js 12.20.55+
 - npm or yarn
 - Modern browser (Chrome, Firefox, Safari, Edge)
 
@@ -61,7 +65,7 @@ npm test
 
 1. Drop any CLDC 1.1 compatible MIDlet (JAR) into `/midlets`
 2. Open `http://localhost:8080/?midlet=yourApp.jar` in a modern browser
-3. Enjoy your J2ME game! 
+3. Enjoy your J2ME game!
 
 ---
 

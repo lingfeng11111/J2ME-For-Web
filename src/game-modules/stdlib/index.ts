@@ -17,6 +17,7 @@
  */
 
 import { registerSystemNatives, registerObjectNatives } from "./java.lang";
+import { registerClassNatives } from "./java.lang/Class";
 
 /**
  * 初始化 Java 标准库
@@ -24,6 +25,7 @@ import { registerSystemNatives, registerObjectNatives } from "./java.lang";
  */
 export function initStdlib(): void {
   registerObjectNatives();
+  registerClassNatives();
   registerSystemNatives();
-  // 后续添加: String, Class, Thread 等
+  // 后续添加: String, Thread 等
 }

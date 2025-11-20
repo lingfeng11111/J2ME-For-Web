@@ -68,11 +68,12 @@ export function registerSystemNatives(): void {
   NativeRegistry.register(className, "identityHashCode", "(Ljava/lang/Object;)I", (frame, thread) => {
     const obj = frame.stack.popRef();
     if (!obj) {
+      // null 的哈希码为 0
       frame.stack.push(0);
     } else {
-      // TODO: 实现真正的 identityHashCode
-      // 目前暂时返回一个随机数或对象的 ID
-      frame.stack.push(12345); 
+      // 返回对象的身份哈希码
+      const javaObj = obj as any;
+      frame.stack.push(javaObj.getIdentityHashCode());
     }
   });
 }

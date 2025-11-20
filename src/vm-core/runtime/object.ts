@@ -39,8 +39,24 @@ export class JavaObject {
   /** 对象 ID (调试用) */
   readonly id: number;
 
+  /** Class 对象缓存 (用于反射) */
+  private classObject: any = null;
+
+  /** 对象的身份哈希码 (延迟生成) */
+  private identityHash: number | null = null;
+
   /** 静态 ID 计数器 */
   private static nextId = 0;
+
+  /** 全局类加载器引用 (用于支持父类字段初始化和类型检查) */
+  private static classLoader: any = null;
+
+  /**
+   * 设置全局类加载器
+   */
+  static setClassLoader(loader: any): void {
+    JavaObject.classLoader = loader;
+  }
 
   constructor(classInfo: ClassInfo) {
     this.classInfo = classInfo;
@@ -65,15 +81,46 @@ export class JavaObject {
       return;
     }
 
-    // 初始化父类字段
-    if (this.classInfo.superClass) {
-      // TODO: 需要递归初始化父类字段
+    // 递归初始化父类字段
+    if (this.classInfo.superClass && this.classInfo.superClass !== "java/lang/Object") {
+      this.initializeSuperClassFields(this.classInfo.superClass);
     }
 
     // 初始化当前类的实例字段
     for (const field of this.classInfo.getInstanceFields()) {
       const defaultValue = this.getDefaultValue(field);
       this.setField(field.name, field.descriptor, defaultValue);
+    }
+  }
+
+  /**
+   * 递归初始化父类字段
+   */
+  private initializeSuperClassFields(superClassName: string): void {
+    if (superClassName === "java/lang/Object" || !JavaObject.classLoader) {
+      // Object 类没有实例字段，或类加载器未设置
+      return;
+    }
+
+    try {
+      // 通过类加载器获取父类的 ClassInfo
+      const superClassInfo = JavaObject.classLoader.loadClass(superClassName);
+      
+      // 递归初始化父类的父类
+      if (superClassInfo.superClass && superClassInfo.superClass !== "java/lang/Object") {
+        this.initializeSuperClassFields(superClassInfo.superClass);
+      }
+
+      // 初始化父类的实例字段
+      if (typeof superClassInfo.getInstanceFields === "function") {
+        for (const field of superClassInfo.getInstanceFields()) {
+          const defaultValue = this.getDefaultValue(field);
+          this.setField(field.name, field.descriptor, defaultValue);
+        }
+      }
+    } catch (e) {
+      // 如果类加载失败，记录警告但不中断对象创建
+      console.warn(`Failed to initialize superclass fields for ${superClassName}:`, e);
     }
   }
 
@@ -147,12 +194,42 @@ export class JavaObject {
       return true;
     }
 
-    // 检查父类
-    // TODO: 需要递归检查父类链
+    // 递归检查父类链
+    if (this.classInfo.superClass && JavaObject.classLoader) {
+      if (this.isInstanceOfSuperClass(this.classInfo.superClass, className)) {
+        return true;
+      }
+    }
 
     // 检查接口
     if (this.classInfo.interfaces.includes(className)) {
       return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * 递归检查父类链
+   */
+  private isInstanceOfSuperClass(superClassName: string, targetClassName: string): boolean {
+    if (superClassName === targetClassName) {
+      return true;
+    }
+
+    if (superClassName === "java/lang/Object" || !JavaObject.classLoader) {
+      return false;
+    }
+
+    try {
+      const superClassInfo = JavaObject.classLoader.loadClass(superClassName);
+      
+      // 递归检查父类的父类
+      if (superClassInfo.superClass) {
+        return this.isInstanceOfSuperClass(superClassInfo.superClass, targetClassName);
+      }
+    } catch (e) {
+      console.warn(`Failed to check instanceof for superclass ${superClassName}:`, e);
     }
 
     return false;
@@ -198,5 +275,51 @@ export class JavaObject {
     }
 
     return lines.join("\n");
+  }
+
+  // ============================================
+  // 反射支持
+  // ============================================
+
+  /**
+   * 获取对象的 Class 对象
+   * 用于支持 Object.getClass() 方法
+   * 
+   * 注意: 为了避免循环依赖,返回类型为 any
+   * 实际返回的是 JavaClass 实例
+   */
+  getClassObject(): any {
+    if (!this.classObject) {
+      // 延迟加载 JavaClass,避免循环依赖
+      // 这里需要动态导入或通过依赖注入
+      // 目前暂时返回一个空对象,等待 JavaClass 设置
+      this.classObject = { classInfo: this.classInfo };
+    }
+    return this.classObject;
+  }
+
+  /**
+   * 设置 Class 对象
+   * 由 JavaClass 创建时调用
+   */
+  setClassObject(classObject: any): void {
+    this.classObject = classObject;
+  }
+
+  /**
+   * 获取对象的身份哈希码
+   * 相当于 System.identityHashCode(this)
+   * 
+   * 使用对象 ID 作为哈希码，保证：
+   * 1. 每个对象有唯一的哈希码
+   * 2. 同一对象多次调用返回相同值
+   * 3. 性能高效（延迟生成）
+   */
+  getIdentityHashCode(): number {
+    if (this.identityHash === null) {
+      // 使用对象 ID 作为身份哈希码
+      this.identityHash = this.id;
+    }
+    return this.identityHash;
   }
 }
