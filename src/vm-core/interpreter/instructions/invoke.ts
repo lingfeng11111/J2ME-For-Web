@@ -22,6 +22,9 @@ import { Frame } from "../frame";
 import { Thread } from "../../threading/thread";
 import { MethodInfo } from "../../classfile/method-info";
 import { NativeRegistry } from "../../native/native-registry";
+import { ClassLoader } from "../../classfile/class-loader";
+import { JavaObject } from "../../runtime/object";
+import { ClassInfo } from "../../classfile/class-info";
 
 export class InvokeInstructions {
   /**
@@ -67,7 +70,118 @@ export class InvokeInstructions {
     }
   }
 
-  // 注意: 完整的 invoke 指令需要解析常量池中的 MethodRef
-  // 这里为了测试 Native 接口,我们假设已经有了 MethodInfo
-  // 实际实现中,invokestatic 等指令会从常量池获取索引,解析出 MethodInfo
+  /**
+   * invokespecial 指令
+   * 调用实例方法，专门用于私有方法、构造方法和父类方法
+   */
+  @Instruction(Opcode.INVOKESPECIAL)
+  static invokespecial(frame: Frame, thread: Thread): void {
+    const code = frame.method.getCode()!;
+    const index = (code.code[frame.pc + 1] << 8) | code.code[frame.pc + 2];
+    
+    // 从常量池解析方法引用
+    const methodRef = frame.method.classInfo.constantPool.getMethodRef(index);
+    
+    // 加载类
+    const classLoader = frame.method.classInfo.classLoader || 
+                       (frame.method.classInfo as any).classLoader || 
+                       new ClassLoader({ readClass: () => null });
+    const classInfo = classLoader.loadClass(methodRef.className);
+    
+    // 查找方法
+    const method = classInfo.getMethod(methodRef.methodName, methodRef.descriptor);
+    if (!method) {
+      throw new Error(`NoSuchMethodError: ${methodRef.className}.${methodRef.methodName}${methodRef.descriptor}`);
+    }
+    
+    // 调用方法
+    this.invokeMethod(frame, thread, method);
+    
+    // 更新 PC
+    frame.pc += 3;
+  }
+
+  /**
+   * invokevirtual 指令
+   * 调用实例方法，支持多态（虚方法调用）
+   */
+  @Instruction(Opcode.INVOKEVIRTUAL)
+  static invokevirtual(frame: Frame, thread: Thread): void {
+    const code = frame.method.getCode()!;
+    const index = (code.code[frame.pc + 1] << 8) | code.code[frame.pc + 2];
+    
+    // 从常量池解析方法引用
+    const methodRef = frame.method.classInfo.constantPool.getMethodRef(index);
+    
+    // 获取 this 对象（在栈顶）
+    const argCount = MethodInfo.prototype.getParameterCount.call({ descriptor: methodRef.descriptor });
+    const thisObj = frame.stack.peek() as JavaObject | null;
+    
+    if (!thisObj) {
+      throw new Error("NullPointerException: Cannot invoke method on null object");
+    }
+    
+    // 根据实际对象类型查找方法（支持多态）
+    const classLoader = frame.method.classInfo.classLoader || 
+                       (frame.method.classInfo as any).classLoader || 
+                       new ClassLoader({ readClass: () => null });
+    
+    // 从实际对象的类开始查找方法
+    let targetClass = thisObj.classInfo;
+    let method: any = null;
+    
+    while (targetClass && !method) {
+      method = targetClass.getMethod(methodRef.methodName, methodRef.descriptor);
+      if (!method && targetClass.superClass) {
+        targetClass = classLoader.loadClass(targetClass.superClass);
+      } else {
+        break;
+      }
+    }
+    
+    if (!method) {
+      throw new Error(`NoSuchMethodError: ${methodRef.className}.${methodRef.methodName}${methodRef.descriptor}`);
+    }
+    
+    // 调用方法
+    this.invokeMethod(frame, thread, method);
+    
+    // 更新 PC
+    frame.pc += 3;
+  }
+
+  /**
+   * invokestatic 指令
+   * 调用静态方法
+   */
+  @Instruction(Opcode.INVOKESTATIC)
+  static invokestatic(frame: Frame, thread: Thread): void {
+    const code = frame.method.getCode()!;
+    const index = (code.code[frame.pc + 1] << 8) | code.code[frame.pc + 2];
+    
+    // 从常量池解析方法引用
+    const methodRef = frame.method.classInfo.constantPool.getMethodRef(index);
+    
+    // 加载类
+    const classLoader = frame.method.classInfo.classLoader || 
+                       (frame.method.classInfo as any).classLoader || 
+                       new ClassLoader({ readClass: () => null });
+    const classInfo = classLoader.loadClass(methodRef.className);
+    
+    // 查找静态方法
+    const method = classInfo.getMethod(methodRef.methodName, methodRef.descriptor);
+    if (!method) {
+      throw new Error(`NoSuchMethodError: ${methodRef.className}.${methodRef.methodName}${methodRef.descriptor}`);
+    }
+    
+    if (!method.isStatic()) {
+      throw new Error(`IncompatibleClassChangeError: Expected static method`);
+    }
+    
+    // 调用方法
+    this.invokeMethod(frame, thread, method);
+    
+    // 更新 PC
+    frame.pc += 3;
+  }
 }

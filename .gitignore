@@ -1,11 +1,13 @@
-# Development documentation (Chinese)
+# Development documentation (Chinese) -屏蔽所有文档和日志，除了README.md
+*.md
+!README.md
 CHANGELOG.md
 ES2020兼容性说明.md
 J2ME-For-Web完整实施规划.md
+J2ME-For-Web游戏加载与兼容性设计规范.md
 J2ME-VM(TS)实现核心.md
 NextStep.md
 重构环境规范.md.md
-重构环境规范.md
 
 # Node
 node_modules/

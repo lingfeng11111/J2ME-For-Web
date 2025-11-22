@@ -45,11 +45,11 @@ function testArrayCopy(): void {
   thread.pushFrame(frame);
 
   // 准备源数组 [1, 2, 3, 4, 5]
-  const src = new JavaArray("I", 5);
+  const src = JavaArray.createFromDescriptor("I", 5);
   for (let i = 0; i < 5; i++) src.set(i, i + 1);
 
   // 准备目标数组 [0, 0, 0, 0, 0]
-  const dest = new JavaArray("I", 5);
+  const dest = JavaArray.createFromDescriptor("I", 5);
 
   // 模拟参数入栈: src, srcPos, dest, destPos, length
   // arraycopy(src, 1, dest, 2, 3) -> dest 应该是 [0, 0, 2, 3, 4]

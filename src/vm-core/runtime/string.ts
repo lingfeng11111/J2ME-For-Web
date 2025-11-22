@@ -40,7 +40,7 @@ export class JavaString extends JavaObject {
     this.jsString = value;
 
     // 创建 char 数组
-    this.charArray = new JavaArray("C", value.length);
+    this.charArray = JavaArray.createFromDescriptor("C", value.length);
     for (let i = 0; i < value.length; i++) {
       this.charArray.set(i, value.charCodeAt(i));
     }

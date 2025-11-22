@@ -38,4 +38,48 @@ export class ControlInstructions {
       invoker.stack.push(value);
     }
   }
+
+  @Instruction(Opcode.LRETURN)
+  static lreturn(frame: Frame, thread: Thread): void {
+    const value = frame.stack.pop();
+    thread.popFrame();
+    
+    if (thread.hasFrames()) {
+      const invoker = thread.currentFrame();
+      invoker.stack.push(value);
+    }
+  }
+
+  @Instruction(Opcode.FRETURN)
+  static freturn(frame: Frame, thread: Thread): void {
+    const value = frame.stack.pop();
+    thread.popFrame();
+    
+    if (thread.hasFrames()) {
+      const invoker = thread.currentFrame();
+      invoker.stack.push(value);
+    }
+  }
+
+  @Instruction(Opcode.DRETURN)
+  static dreturn(frame: Frame, thread: Thread): void {
+    const value = frame.stack.pop();
+    thread.popFrame();
+    
+    if (thread.hasFrames()) {
+      const invoker = thread.currentFrame();
+      invoker.stack.push(value);
+    }
+  }
+
+  @Instruction(Opcode.ARETURN)
+  static areturn(frame: Frame, thread: Thread): void {
+    const value = frame.stack.pop();
+    thread.popFrame();
+    
+    if (thread.hasFrames()) {
+      const invoker = thread.currentFrame();
+      invoker.stack.push(value);
+    }
+  }
 }

@@ -26,6 +26,8 @@ import { Opcode } from "../../bytecode/opcodes";
 import { Instruction } from "../instruction";
 import { Frame } from "../frame";
 import { Thread } from "../../threading/thread";
+import { JavaArray, ArrayType, getArrayTypeFromDescriptor } from "../../runtime/array";
+import { ClassLoader } from "../../classfile/class-loader";
 
 export class ArrayInstructions {
   @Instruction(Opcode.NEWARRAY)
@@ -37,30 +39,47 @@ export class ArrayInstructions {
       throw new Error("NegativeArraySizeException");
     }
     
-    // 创建基本类型数组
-    let array: any[];
+    // 将 atype 转换为 ArrayType
+    let componentType: ArrayType;
     switch (atype) {
       case 4: // T_BOOLEAN
+        componentType = ArrayType.BOOLEAN;
+        break;
       case 5: // T_CHAR
-      case 8: // T_BYTE
-      case 9: // T_SHORT
-      case 10: // T_INT
-        array = new Array(count).fill(0);
+        componentType = ArrayType.CHAR;
         break;
       case 6: // T_FLOAT
-        array = new Array(count).fill(0.0);
+        componentType = ArrayType.FLOAT;
         break;
       case 7: // T_DOUBLE
-        array = new Array(count).fill(0.0);
+        componentType = ArrayType.DOUBLE;
+        break;
+      case 8: // T_BYTE
+        componentType = ArrayType.BYTE;
+        break;
+      case 9: // T_SHORT
+        componentType = ArrayType.SHORT;
+        break;
+      case 10: // T_INT
+        componentType = ArrayType.INT;
         break;
       case 11: // T_LONG
-        array = new Array(count).fill(0n);
+        componentType = ArrayType.LONG;
         break;
       default:
         throw new Error(`Invalid array type: ${atype}`);
     }
     
+    // 加载数组类
+    const classLoader = frame.method.classInfo.classLoader || new ClassLoader({ readClass: () => null });
+    const arrayClass = classLoader.loadClass(this.getArrayClassName(componentType));
+    
+    // 创建数组对象
+    const array = new JavaArray(arrayClass, componentType, count);
+    
+    // 将数组引用压入栈
     frame.stack.push(array);
+    
     frame.pc += 2;
   }
 
@@ -76,8 +95,18 @@ export class ArrayInstructions {
       throw new Error("NegativeArraySizeException");
     }
     
-    // 创建对象数组
-    const array = new Array(count).fill(null);
+    // 从常量池获取组件类型
+    const componentClassName = frame.method.classInfo.constantPool.getClassName(index);
+    
+    // 加载数组类（例如 [Ljava/lang/Object;）
+    const classLoader = frame.method.classInfo.classLoader || new ClassLoader({ readClass: () => null });
+    const arrayClassName = this.getObjectArrayClassName(componentClassName);
+    const arrayClass = classLoader.loadClass(arrayClassName);
+    
+    // 创建数组对象
+    const array = new JavaArray(arrayClass, ArrayType.OBJECT, count);
+    
+    // 将数组引用压入栈
     frame.stack.push(array);
     
     frame.pc += 3;
@@ -320,5 +349,158 @@ export class ArrayInstructions {
     
     arrayref[index] = value;
     frame.pc++;
+  }
+
+  @Instruction(Opcode.LALOAD)
+  static laload(frame: Frame, thread: Thread): void {
+    const index = frame.stack.popInt();
+    const arrayref = frame.stack.pop();
+    
+    if (arrayref === null) {
+      throw new Error("NullPointerException");
+    }
+    
+    if (!Array.isArray(arrayref)) {
+      throw new Error("Invalid array reference");
+    }
+    
+    if (index < 0 || index >= arrayref.length) {
+      throw new Error("ArrayIndexOutOfBoundsException");
+    }
+    
+    frame.stack.push(arrayref[index]);
+    frame.pc++;
+  }
+
+  @Instruction(Opcode.LASTORE)
+  static lastore(frame: Frame, thread: Thread): void {
+    const value = frame.stack.pop(); // long value
+    const index = frame.stack.popInt();
+    const arrayref = frame.stack.pop();
+    
+    if (arrayref === null) {
+      throw new Error("NullPointerException");
+    }
+    
+    if (!Array.isArray(arrayref)) {
+      throw new Error("Invalid array reference");
+    }
+    
+    if (index < 0 || index >= arrayref.length) {
+      throw new Error("ArrayIndexOutOfBoundsException");
+    }
+    
+    arrayref[index] = value;
+    frame.pc++;
+  }
+
+  @Instruction(Opcode.FALOAD)
+  static faload(frame: Frame, thread: Thread): void {
+    const index = frame.stack.popInt();
+    const arrayref = frame.stack.pop();
+    
+    if (arrayref === null) {
+      throw new Error("NullPointerException");
+    }
+    
+    if (!Array.isArray(arrayref)) {
+      throw new Error("Invalid array reference");
+    }
+    
+    if (index < 0 || index >= arrayref.length) {
+      throw new Error("ArrayIndexOutOfBoundsException");
+    }
+    
+    frame.stack.push(arrayref[index]);
+    frame.pc++;
+  }
+
+  @Instruction(Opcode.FASTORE)
+  static fastore(frame: Frame, thread: Thread): void {
+    const value = frame.stack.pop(); // float value
+    const index = frame.stack.popInt();
+    const arrayref = frame.stack.pop();
+    
+    if (arrayref === null) {
+      throw new Error("NullPointerException");
+    }
+    
+    if (!Array.isArray(arrayref)) {
+      throw new Error("Invalid array reference");
+    }
+    
+    if (index < 0 || index >= arrayref.length) {
+      throw new Error("ArrayIndexOutOfBoundsException");
+    }
+    
+    arrayref[index] = value;
+    frame.pc++;
+  }
+
+  @Instruction(Opcode.DALOAD)
+  static daload(frame: Frame, thread: Thread): void {
+    const index = frame.stack.popInt();
+    const arrayref = frame.stack.pop();
+    
+    if (arrayref === null) {
+      throw new Error("NullPointerException");
+    }
+    
+    if (!Array.isArray(arrayref)) {
+      throw new Error("Invalid array reference");
+    }
+    
+    if (index < 0 || index >= arrayref.length) {
+      throw new Error("ArrayIndexOutOfBoundsException");
+    }
+    
+    frame.stack.push(arrayref[index]);
+    frame.pc++;
+  }
+
+  @Instruction(Opcode.DASTORE)
+  static dastore(frame: Frame, thread: Thread): void {
+    const value = frame.stack.pop(); // double value
+    const index = frame.stack.popInt();
+    const arrayref = frame.stack.pop();
+    
+    if (arrayref === null) {
+      throw new Error("NullPointerException");
+    }
+    
+    if (!Array.isArray(arrayref)) {
+      throw new Error("Invalid array reference");
+    }
+    
+    if (index < 0 || index >= arrayref.length) {
+      throw new Error("ArrayIndexOutOfBoundsException");
+    }
+    
+    arrayref[index] = value;
+    frame.pc++;
+  }
+
+  /**
+   * 获取基本类型数组的类名
+   */
+  private static getArrayClassName(componentType: ArrayType): string {
+    switch (componentType) {
+      case ArrayType.BOOLEAN: return '[Z';
+      case ArrayType.BYTE: return '[B';
+      case ArrayType.CHAR: return '[C';
+      case ArrayType.SHORT: return '[S';
+      case ArrayType.INT: return '[I';
+      case ArrayType.LONG: return '[J';
+      case ArrayType.FLOAT: return '[F';
+      case ArrayType.DOUBLE: return '[D';
+      default: throw new Error(`Invalid component type: ${componentType}`);
+    }
+  }
+
+  /**
+   * 获取对象数组的类名
+   */
+  private static getObjectArrayClassName(componentClassName: string): string {
+    return `[L${componentClassName};`;
   }
 }

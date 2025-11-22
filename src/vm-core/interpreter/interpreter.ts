@@ -28,6 +28,21 @@ import { getOpcodeMnemonic } from "../bytecode/descriptors";
 import { ExecutionStatus } from "../core/constants";
 
 /**
+ * 异常处理器
+ * 对应 Code 属性中的异常表条目
+ */
+export interface ExceptionHandler {
+  /** 起始 PC */
+  startPc: number;
+  /** 结束 PC */
+  endPc: number;
+  /** 处理器 PC */
+  handlerPc: number;
+  /** 捕获的异常类型（0 表示 finally，捕获所有异常）*/
+  catchType: number | string;
+}
+
+/**
  * 解释器
  * 负责执行线程中的字节码
  */
@@ -64,17 +79,18 @@ export class Interpreter {
         );
       }
 
-      // 预设下一条指令的 PC (假设是单字节指令,多字节指令会在 handler 中修正)
-      // 注意: 实际的 PC 更新通常由指令 handler 自己处理,或者由统一逻辑处理
-      // 这里我们让 handler 负责读取操作数并更新 frame.pc 到下一条指令
-      // 但为了方便,我们可以在这里记录当前 PC,供调试使用
-      
       // 执行指令
       try {
         handler(frame, thread);
       } catch (e) {
-        console.error(`Error executing opcode ${getOpcodeMnemonic(opcode)} at pc=${pc}`);
-        throw e;
+        // 异常处理
+        const handled = Interpreter.handleException(thread, e);
+        if (!handled) {
+          // 未捕获的异常，传播到外层
+          console.error(`Uncaught exception in ${frame.method.getSignature()} at pc=${pc}`);
+          throw e;
+        }
+        // 异常已处理，继续执行
       }
 
       // 检查是否需要暂停 (例如时间片耗尽)
@@ -84,6 +100,101 @@ export class Interpreter {
     
     // 执行结束
     yield ExecutionStatus.TERMINATED;
+  }
+
+  /**
+   * 处理异常
+   * @param thread 当前线程
+   * @param error 异常对象
+   * @returns 是否成功处理异常
+   */
+  private static handleException(thread: Thread, error: any): boolean {
+    // 导入 JavaException 类型
+    const JavaException = require('./instructions/exception-instructions').JavaException;
+    
+    // 只处理 Java 异常
+    if (!(error instanceof JavaException)) {
+      return false;
+    }
+
+    const throwable = error.throwable;
+    
+    // 从当前栈帧开始查找异常处理器
+    while (thread.hasFrames()) {
+      const frame = thread.currentFrame();
+      const code = frame.method.getCode();
+      
+      if (!code || !code.exceptionTable) {
+        // 没有异常表，弹出栈帧继续查找
+        thread.popFrame();
+        continue;
+      }
+
+      // 在异常表中查找匹配的处理器
+      const handler = Interpreter.findExceptionHandler(
+        code.exceptionTable,
+        frame.pc,
+        throwable.classInfo.thisClass
+      );
+
+      if (handler) {
+        // 找到处理器
+        // 清空操作数栈
+        while (frame.stack.size() > 0) {
+          frame.stack.pop();
+        }
+        
+        // 将异常对象压入栈
+        frame.stack.push(throwable);
+        
+        // 跳转到处理器
+        frame.pc = handler.handlerPc;
+        
+        return true;
+      }
+
+      // 当前栈帧没有处理器，弹出并继续查找
+      thread.popFrame();
+    }
+
+    // 没有找到处理器
+    return false;
+  }
+
+  /**
+   * 在异常表中查找匹配的处理器
+   * @param exceptionTable 异常表
+   * @param pc 当前 PC
+   * @param exceptionClass 异常类名
+   * @returns 匹配的处理器，如果没有则返回 null
+   */
+  private static findExceptionHandler(
+    exceptionTable: ExceptionHandler[],
+    pc: number,
+    exceptionClass: string
+  ): ExceptionHandler | null {
+    for (const handler of exceptionTable) {
+      // 检查 PC 是否在处理器范围内
+      if (pc >= handler.startPc && pc < handler.endPc) {
+        // catchType 为 0 表示 finally 块，捕获所有异常
+        if (handler.catchType === 0) {
+          return handler;
+        }
+
+        // 检查异常类型是否匹配
+        // TODO: 实现完整的类型检查（包括继承）
+        if (handler.catchType === exceptionClass) {
+          return handler;
+        }
+
+        // 简化处理：如果 catchType 是 Throwable，捕获所有异常
+        if (handler.catchType === 'java/lang/Throwable') {
+          return handler;
+        }
+      }
+    }
+
+    return null;
   }
 
   /**

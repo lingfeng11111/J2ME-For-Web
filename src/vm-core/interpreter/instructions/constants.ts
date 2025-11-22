@@ -20,11 +20,40 @@ import { Opcode } from "../../bytecode/opcodes";
 import { Instruction } from "../instruction";
 import { Frame } from "../frame";
 import { Thread } from "../../threading/thread";
+import { ClassLoader } from "../../classfile/class-loader";
+import { JavaObject } from "../../runtime/object";
 
 export class ConstantInstructions {
   @Instruction(Opcode.NOP)
   static nop(frame: Frame, thread: Thread): void {
     frame.pc++;
+  }
+
+  @Instruction(Opcode.NEW)
+  static new(frame: Frame, thread: Thread): void {
+    const code = frame.method.getCode()!;
+    const index = (code.code[frame.pc + 1] << 8) | code.code[frame.pc + 2];
+    
+    // 从常量池解析类引用
+    const className = frame.method.classInfo.constantPool.getClassName(index);
+    
+    // 从 thread 获取 classLoader
+    const classLoader = (thread as any).classLoader;
+    if (!classLoader) {
+      throw new Error("ClassLoader not available in thread");
+    }
+    
+    // 加载类
+    const classInfo = classLoader.loadClass(className);
+    
+    // 创建对象实例
+    const object = new JavaObject(classInfo);
+    
+    // 将对象引用压入栈
+    frame.stack.push(object);
+    
+    // 更新 PC
+    frame.pc += 3;
   }
 
   @Instruction(Opcode.ICONST_M1)

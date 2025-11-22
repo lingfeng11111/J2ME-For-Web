@@ -21,214 +21,256 @@
  * Java 数组的运行时表示
  */
 
-import { JavaValue, TypedArray } from "../core/types";
+import { ClassInfo } from "../classfile/class-info";
 import { JavaObject } from "./object";
+import { JavaValue } from "../core/types";
 
 /**
- * Java 数组
- * 根据元素类型选择最优的存储方式
+ * Java 数组类型
  */
-export class JavaArray {
-  /** 数组元素类型描述符 */
-  readonly componentType: string;
+export enum ArrayType {
+  BOOLEAN = 4,    // Z
+  CHAR = 5,       // C
+  FLOAT = 6,      // F
+  DOUBLE = 7,     // D
+  BYTE = 8,       // B
+  SHORT = 9,      // S
+  INT = 10,       // I
+  LONG = 11,      // J
+  OBJECT = 100,   // 对象数组
+}
 
+/**
+ * Java 数组对象
+ * 继承自 JavaObject，同时管理数组元素
+ */
+export class JavaArray extends JavaObject {
+  /** 数组元素类型 */
+  readonly componentType: ArrayType;
+  
   /** 数组长度 */
   readonly length: number;
+  
+  /** 数组元素存储 */
+  private elements: JavaValue[];
 
-  /** 数组数据 (基本类型使用 TypedArray,引用类型使用普通数组) */
-  private data: any[] | TypedArray;
-
-  /** 数组 ID (调试用) */
-  readonly id: number;
-
-  /** 静态 ID 计数器 */
-  private static nextId = 0;
-
-  constructor(componentType: string, length: number) {
+  constructor(classInfo: ClassInfo, componentType: ArrayType, length: number) {
+    super(classInfo);
     this.componentType = componentType;
     this.length = length;
-    this.id = JavaArray.nextId++;
-
-    // 根据元素类型创建合适的存储
-    this.data = this.createStorage(componentType, length);
+    this.elements = new Array(length);
+    
+    // 初始化数组元素为默认值
+    this.initializeElements();
   }
 
-  // ============================================
-  // 存储创建
-  // ============================================
+  /**
+   * 从描述符创建数组（简化工厂方法，用于测试）
+   * @param descriptor 类型描述符（如 "I", "J", "[I" 等）
+   * @param length 数组长度
+   */
+  static createFromDescriptor(descriptor: string, length: number): JavaArray {
+    const componentType = getArrayTypeFromDescriptor(descriptor);
+    
+    // 创建一个模拟的 ClassInfo
+    const arrayClassName = descriptor.startsWith('[') ? descriptor : `[${descriptor}`;
+    const mockClassInfo = {
+      thisClass: arrayClassName,
+      superClass: 'java/lang/Object',
+      interfaces: [],
+      accessFlags: 0x0001,
+      fields: [],
+      methods: [],
+      constantPool: { getSize: () => 0 },
+      isPublic: () => true,
+      isFinal: () => true,
+      isInterface: () => false,
+      isAbstract: () => false,
+      getJavaVersion: () => "1.0",
+      getInstanceFields: () => [],
+      getStaticFields: () => [],
+    } as unknown as ClassInfo;
+
+    return new JavaArray(mockClassInfo, componentType, length);
+  }
 
   /**
-   * 根据元素类型创建存储
+   * 初始化数组元素为默认值
    */
-  private createStorage(componentType: string, length: number): any[] | TypedArray {
-    switch (componentType) {
-      case "Z": // boolean (使用 Uint8Array)
-      case "B": // byte
-        return new Int8Array(length);
-
-      case "C": // char (无符号 16 位)
-        return new Uint16Array(length);
-
-      case "S": // short
-        return new Int16Array(length);
-
-      case "I": // int
-        return new Int32Array(length);
-
-      case "J": // long (注意: 不能使用 BigInt64Array,Node.js 12 不支持)
-        // 使用普通数组存储 bigint
-        return new Array(length).fill(0n);
-
-      case "F": // float
-        return new Float32Array(length);
-
-      case "D": // double
-        return new Float64Array(length);
-
-      default:
-        // 引用类型 (对象/数组)
-        return new Array(length).fill(null);
+  private initializeElements(): void {
+    const defaultValue = this.getArrayDefaultValue();
+    for (let i = 0; i < this.length; i++) {
+      this.elements[i] = defaultValue;
     }
   }
 
-  // ============================================
-  // 数组访问
-  // ============================================
+  /**
+   * 获取数组元素的默认值
+   */
+  private getArrayDefaultValue(): JavaValue {
+    switch (this.componentType) {
+      case ArrayType.BOOLEAN:
+      case ArrayType.BYTE:
+      case ArrayType.CHAR:
+      case ArrayType.SHORT:
+      case ArrayType.INT:
+        return 0;
+      case ArrayType.LONG:
+        return 0n;
+      case ArrayType.FLOAT:
+      case ArrayType.DOUBLE:
+        return 0.0;
+      case ArrayType.OBJECT:
+        return null;
+      default:
+        return null;
+    }
+  }
 
   /**
    * 获取数组元素
    */
-  get(index: number): JavaValue {
+  getElement(index: number): JavaValue {
     if (index < 0 || index >= this.length) {
-      throw new Error(`ArrayIndexOutOfBoundsException: ${index}`);
+      throw new Error(`ArrayIndexOutOfBoundsException: ${index} (length: ${this.length})`);
     }
-    return this.data[index];
+    return this.elements[index];
   }
 
   /**
    * 设置数组元素
    */
-  set(index: number, value: JavaValue): void {
+  setElement(index: number, value: JavaValue): void {
     if (index < 0 || index >= this.length) {
-      throw new Error(`ArrayIndexOutOfBoundsException: ${index}`);
+      throw new Error(`ArrayIndexOutOfBoundsException: ${index} (length: ${this.length})`);
     }
-    this.data[index] = value;
+    
+    // 类型检查（简化版本）
+    if (!this.isValidElement(value)) {
+      throw new Error(`ArrayStoreException: Cannot store ${typeof value} in ${ArrayType[this.componentType]} array`);
+    }
+    
+    this.elements[index] = value;
   }
 
-  // ============================================
-  // 类型判断
-  // ============================================
-
   /**
-   * 是否为基本类型数组
+   * 验证元素类型是否匹配
    */
-  isPrimitiveArray(): boolean {
-    return "BCDFIJSZ".includes(this.componentType);
+  private isValidElement(value: JavaValue): boolean {
+    if (value === null) {
+      return true; // null 可以赋值给任何引用类型数组
+    }
+
+    switch (this.componentType) {
+      case ArrayType.BOOLEAN:
+        return typeof value === 'boolean' || (typeof value === 'number' && (value === 0 || value === 1));
+      case ArrayType.BYTE:
+      case ArrayType.CHAR:
+      case ArrayType.SHORT:
+      case ArrayType.INT:
+        return typeof value === 'number' && Number.isInteger(value);
+      case ArrayType.LONG:
+        return typeof value === 'bigint';
+      case ArrayType.FLOAT:
+      case ArrayType.DOUBLE:
+        return typeof value === 'number';
+      case ArrayType.OBJECT:
+        return value instanceof JavaObject;
+      default:
+        return false;
+    }
   }
 
   /**
-   * 是否为对象数组
+   * 获取所有元素（调试用）
    */
-  isObjectArray(): boolean {
-    return this.componentType.startsWith("L");
+  getElements(): JavaValue[] {
+    return [...this.elements];
   }
 
   /**
-   * 是否为多维数组
+   * 获取数组元素（兼容旧 API）
    */
-  isMultiDimensionalArray(): boolean {
-    return this.componentType.startsWith("[");
+  get(index: number): JavaValue {
+    return this.getElement(index);
   }
 
   /**
-   * 获取数组的类名
+   * 设置数组元素（兼容旧 API）
    */
-  getClassName(): string {
-    return `[${this.componentType}`;
+  set(index: number, value: JavaValue): void {
+    this.setElement(index, value);
   }
 
-  // ============================================
-  // 批量操作
-  // ============================================
-
   /**
-   * 复制数组内容到另一个数组
+   * 复制数组元素到另一个数组
    */
   copyTo(dest: JavaArray, srcPos: number, destPos: number, length: number): void {
     if (srcPos < 0 || destPos < 0 || length < 0) {
-      throw new Error("Invalid array copy parameters");
+      throw new Error("IndexOutOfBoundsException: negative index or length");
+    }
+    if (srcPos + length > this.length) {
+      throw new Error("IndexOutOfBoundsException: source array overflow");
+    }
+    if (destPos + length > dest.length) {
+      throw new Error("IndexOutOfBoundsException: destination array overflow");
     }
 
-    if (srcPos + length > this.length || destPos + length > dest.length) {
-      throw new Error("ArrayIndexOutOfBoundsException");
-    }
-
-    // 使用原生数组复制 (高性能)
-    if (this.data instanceof Array && dest.data instanceof Array) {
-      for (let i = 0; i < length; i++) {
-        dest.data[destPos + i] = this.data[srcPos + i];
-      }
-    } else if (
-      ArrayBuffer.isView(this.data) &&
-      ArrayBuffer.isView(dest.data) &&
-      this.data.constructor === dest.data.constructor
-    ) {
-      // TypedArray 之间的复制
-      (dest.data as any).set(
-        (this.data as any).subarray(srcPos, srcPos + length),
-        destPos
-      );
-    } else {
-      // 类型不匹配,逐个复制
-      for (let i = 0; i < length; i++) {
-        dest.set(destPos + i, this.get(srcPos + i));
-      }
+    for (let i = 0; i < length; i++) {
+      dest.setElement(destPos + i, this.elements[srcPos + i]);
     }
   }
 
   /**
-   * 填充数组
+   * 打印数组元素（调试用）
    */
-  fill(value: JavaValue, start: number = 0, end: number = this.length): void {
-    if (this.data instanceof Array) {
-      this.data.fill(value, start, end);
-    } else {
-      (this.data as TypedArray).fill(value as number, start, end);
-    }
-  }
-
-  // ============================================
-  // 调试信息
-  // ============================================
-
-  /**
-   * 转换为字符串 (调试用)
-   */
-  toString(): string {
-    return `${this.getClassName()}@${this.id}[${this.length}]`;
+  printElements(): string {
+    return `[${this.elements.map(e => String(e)).join(', ')}]`;
   }
 
   /**
-   * 打印数组内容 (仅前几个元素)
+   * 判断是否为基本类型数组
    */
-  printElements(maxElements: number = 10): string {
-    const elements: string[] = [];
-    const count = Math.min(this.length, maxElements);
+  isPrimitiveArray(): boolean {
+    return this.componentType !== ArrayType.OBJECT;
+  }
+}
 
-    for (let i = 0; i < count; i++) {
-      const value = this.get(i);
-      if (value === null) {
-        elements.push("null");
-      } else if (typeof value === "bigint") {
-        elements.push(`${value}n`);
-      } else if (typeof value === "object") {
-        elements.push((value as any).toString?.() || "[object]");
-      } else {
-        elements.push(String(value));
+/**
+ * 从字段描述符获取数组类型
+ */
+export function getArrayTypeFromDescriptor(descriptor: string): ArrayType {
+  switch (descriptor) {
+    case 'Z': return ArrayType.BOOLEAN;
+    case 'B': return ArrayType.BYTE;
+    case 'C': return ArrayType.CHAR;
+    case 'S': return ArrayType.SHORT;
+    case 'I': return ArrayType.INT;
+    case 'J': return ArrayType.LONG;
+    case 'F': return ArrayType.FLOAT;
+    case 'D': return ArrayType.DOUBLE;
+    default:
+      if (descriptor.startsWith('L') || descriptor.startsWith('[')) {
+        return ArrayType.OBJECT;
       }
-    }
+      throw new Error(`Unknown array type descriptor: ${descriptor}`);
+  }
+}
 
-    const suffix = this.length > maxElements ? ", ..." : "";
-    return `${this.toString()} = [${elements.join(", ")}${suffix}]`;
+/**
+ * 从数组类型获取字段描述符
+ */
+export function getDescriptorFromArrayType(arrayType: ArrayType): string {
+  switch (arrayType) {
+    case ArrayType.BOOLEAN: return 'Z';
+    case ArrayType.BYTE: return 'B';
+    case ArrayType.CHAR: return 'C';
+    case ArrayType.SHORT: return 'S';
+    case ArrayType.INT: return 'I';
+    case ArrayType.LONG: return 'J';
+    case ArrayType.FLOAT: return 'F';
+    case ArrayType.DOUBLE: return 'D';
+    case ArrayType.OBJECT: return 'Ljava/lang/Object;';
+    default: throw new Error(`Unknown array type: ${arrayType}`);
   }
 }

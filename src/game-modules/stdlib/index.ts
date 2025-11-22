@@ -18,6 +18,7 @@
 
 import { registerSystemNatives, registerObjectNatives } from "./java.lang";
 import { registerClassNatives } from "./java.lang/Class";
+import { registerMIDletNatives } from "./javax.microedition/midlet/MIDlet";
 
 /**
  * 初始化 Java 标准库
@@ -27,5 +28,6 @@ export function initStdlib(): void {
   registerObjectNatives();
   registerClassNatives();
   registerSystemNatives();
+  registerMIDletNatives();
   // 后续添加: String, Thread 等
 }

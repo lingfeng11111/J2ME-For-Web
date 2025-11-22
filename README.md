@@ -32,7 +32,49 @@ A hobby VM that boots real J2ME byte-code (CLDC 1.1 / MIDP 2.0 subset) inside mo
 | **Long math**         | ✅ Complete    | Native BigInt, 100× faster than ASM.js                      |
 | **Arrays & Fields**   | ✅ Complete    | All primitive arrays, GETFIELD/PUTFIELD/GETSTATIC/PUTSTATIC |
 | **Build & Test**      | ✅ Passing     | TypeScript compilation + unit tests all green               |
-| **LCDUI Graphics**    | 🚧 In Progress | Display, Canvas, Graphics API (next milestone)              |
+| **LCDUI Graphics**    | ✅ Complete    | Display, Canvas, Graphics API                               |
+| **Exception Handling**| ✅ Complete    | Full exception handling with stack unwinding                |
+| **VM Core**           | ✅ 98% Complete| Instruction set, execution engine, exception flow control   |
+
+---
+
+## Recent Progress (2025-11-20)
+
+*   **VM Core Complete - Exception Handling & Execution Engine 🎉🚀 (23:00)**
+    *   **Complete exception handling logic** with automatic stack frame unwinding
+    *   **Exception handler lookup** with PC range checking and type matching
+    *   **Full exception table support** including finally blocks (catchType = 0)
+    *   **Enhanced Interpreter** with try-catch wrapping and error reporting
+    *   **VM Core 98% complete** with 15 major instruction categories (~66 instructions)
+    *   All existing tests 100% passing ✅
+
+*   **VM Core - Exception Handling Mechanism Implementation 🎯 (22:56)**
+    *   **JavaThrowable class** with message, stack trace, and cause exception support
+    *   **Exception instructions** - implemented `athrow` (0xBF) instruction
+    *   **Complete exception class hierarchy** - Throwable, Exception, RuntimeException, and common exceptions
+    *   **Stack trace automation** with class name, method name, file name, and line number
+
+*   **VM Core - Type Checking, Synchronization & Switch Instructions (22:50)**
+    *   **Type checking instructions** - `instanceof` and `checkcast` with type compatibility checking
+    *   **Synchronization instructions** - `monitorenter` and `monitorexit` with MonitorManager for reentrant locks
+    *   **Switch instructions** - `tableswitch` and `lookupswitch` with proper 4-byte alignment and big-endian parsing
+
+*   **VM Core - Stack Operations, Math & Array Instructions (22:45)**
+    *   **Stack operation instructions** - `pop`, `pop2`, `dup`, `dup_x1`, `dup_x2`, `dup2`, `dup2_x1`, `dup2_x2`, `swap`
+    *   **Enhanced math instructions** - `idiv`, `irem`, `ineg`, `ishl`, `ishr`, `iushr`, `iand`, `ior`, `ixor`
+    *   **Complete array operations** - `laload`, `lastore`, `faload`, `fastore`, `daload`, `dastore`
+
+*   **VM Core - Branch, Conversion & Comparison Instructions (22:35)**
+    *   **Branch instructions** - `goto`, `ifeq`, `ifne`, `iflt`, `ifge`, `ifgt`, `ifle`, `if_icmp*` series, `if_acmp*`, `ifnull`, `ifnonnull`
+    *   **Type conversion instructions** - Complete int/long/float/double conversions including narrowing conversions
+    *   **Comparison instructions** - `lcmp`, `fcmpl`, `fcmpg`, `dcmpl`, `dcmpg` with proper NaN handling
+
+*   **VM Core - System Class Loading & Object Instructions (21:15)**
+    *   **System class loading architecture** - `CompositeClassPath` and `SystemClassPath` for flexible class loading
+    *   **Object creation instructions** - `new` instruction for object instantiation
+    *   **Method call instructions** - `invokespecial`, `invokevirtual`, `invokestatic`
+    *   **Return instruction series** - `return`, `ireturn`, `lreturn`, `freturn`, `dreturn`, `areturn`
+    *   **Enhanced runtime environment** - Improved `JavaObject` and `JavaThread` with proper stack frame management
 
 ---
 

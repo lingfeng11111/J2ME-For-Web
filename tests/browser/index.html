@@ -1,0 +1,178 @@
+<!--
+ * Copyright (C) 2025 Lingfeng <3374080053@qq.com>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J2ME LCDUI 测试 (CommonJS)</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #4ec9b0;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .info {
+            background-color: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info h2 {
+            color: #569cd6;
+            margin-top: 0;
+        }
+
+        .info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .info li {
+            margin: 5px 0;
+        }
+
+        #canvas-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #console {
+            background-color: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .success {
+            color: #4ec9b0;
+        }
+
+        .error {
+            color: #f48771;
+        }
+
+        .warning {
+            color: #dcdcaa;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎮 J2ME LCDUI 测试 (CommonJS 版本)</h1>
+
+        <div class="info">
+            <h2>📋 测试说明</h2>
+            <ul>
+                <li><strong>键盘控制:</strong> 使用方向键或数字键 2/4/6/8 控制</li>
+                <li><strong>确认键:</strong> Enter 或 空格 或 数字键 5</li>
+                <li><strong>鼠标/触摸:</strong> 点击或拖动画布测试指针事件</li>
+                <li><strong>数字键:</strong> 0-9, *, # 测试按键映射</li>
+            </ul>
+        </div>
+
+        <div class="info">
+            <h2>🎨 渲染测试内容</h2>
+            <ul>
+                <li>红色填充矩形</li>
+                <li>蓝色矩形边框</li>
+                <li>绿色圆角矩形</li>
+                <li>黑色交叉线</li>
+                <li>紫色圆弧</li>
+                <li>橙色三角形</li>
+                <li>文本渲染 (标题、帧计数、按键信息)</li>
+                <li>指针位置显示 (红点)</li>
+            </ul>
+        </div>
+
+        <div id="canvas-container">
+            <!-- Canvas 将由 Display 自动创建并插入到这里 -->
+        </div>
+
+        <div class="info">
+            <h2>📊 控制台输出</h2>
+            <div id="console"></div>
+        </div>
+    </div>
+
+    <script>
+        // 重定向 console.log 到页面
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+
+        console.log = function (...args) {
+            originalLog.apply(console, args);
+            const message = args.join(' ');
+            const span = document.createElement('span');
+            span.className = 'success';
+            span.textContent = message + '\n';
+            consoleDiv.appendChild(span);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+
+        console.warn = function (...args) {
+            originalWarn.apply(console, args);
+            const message = args.join(' ');
+            const span = document.createElement('span');
+            span.className = 'warning';
+            span.textContent = '⚠️ ' + message + '\n';
+            consoleDiv.appendChild(span);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+
+        console.error = function (...args) {
+            originalError.apply(console, args);
+            const message = args.join(' ');
+            const span = document.createElement('span');
+            span.className = 'error';
+            span.textContent = '❌ ' + message + '\n';
+            consoleDiv.appendChild(span);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+    </script>
+
+    <!-- 加载打包后的测试代码 -->
+    <script src="bundle.js"></script>
+</body>
+
+</html>

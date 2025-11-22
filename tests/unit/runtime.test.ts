@@ -117,7 +117,7 @@ function testJavaArray(): void {
   console.log("=== JavaArray 测试 ===\n");
 
   // 测试 int 数组
-  const intArray = new JavaArray("I", 5);
+  const intArray = JavaArray.createFromDescriptor("I", 5);
   console.log(`1. 创建 int 数组: ${intArray.toString()}`);
   console.log(`   是否为基本类型数组: ${intArray.isPrimitiveArray()}\n`);
 
@@ -129,7 +129,7 @@ function testJavaArray(): void {
   console.log(`   ${intArray.printElements()}\n`);
 
   // 测试 long 数组 (BigInt)
-  const longArray = new JavaArray("J", 3);
+  const longArray = JavaArray.createFromDescriptor("J", 3);
   longArray.set(0, 100n);
   longArray.set(1, 200n);
   longArray.set(2, 9007199254740991n); // 大于 Number.MAX_SAFE_INTEGER
@@ -137,7 +137,7 @@ function testJavaArray(): void {
   console.log(`   ${longArray.printElements()}\n`);
 
   // 测试数组复制
-  const destArray = new JavaArray("I", 5);
+  const destArray = JavaArray.createFromDescriptor("I", 5);
   intArray.copyTo(destArray, 0, 0, 5);
   console.log(`4. 数组复制:`);
   console.log(`   源: ${intArray.printElements()}`);

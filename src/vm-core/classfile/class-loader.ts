@@ -22,6 +22,7 @@
  */
 
 import { ClassInfo } from "./class-info";
+import { SystemClassPath } from "./system-class-path";
 
 /**
  * 类路径接口
@@ -47,8 +48,12 @@ export class ClassLoader {
   /** 类路径 */
   private classPath: ClassPath;
 
-  constructor(classPath: ClassPath) {
+  /** 系统类路径（可选） */
+  private systemClassPath?: SystemClassPath;
+
+  constructor(classPath: ClassPath, systemClassPath?: SystemClassPath) {
     this.classPath = classPath;
+    this.systemClassPath = systemClassPath;
   }
 
   /**
@@ -66,31 +71,52 @@ export class ClassLoader {
       return this.loadArrayClass(className);
     }
 
-    // 3. 读取 Class 文件
+    // 3. 检查系统类路径
+    if (this.systemClassPath && this.systemClassPath.isSystemClass(className)) {
+      const systemClass = this.systemClassPath.getSystemClass(className);
+      if (systemClass) {
+        // 放入缓存
+        this.classes.set(className, systemClass);
+        
+        // 递归加载父类
+        if (systemClass.superClass) {
+          this.loadClass(systemClass.superClass);
+        }
+        
+        // 递归加载接口
+        for (const interfaceName of systemClass.interfaces) {
+          this.loadClass(interfaceName);
+        }
+        
+        return systemClass;
+      }
+    }
+
+    // 4. 读取 Class 文件
     const data = this.classPath.readClass(className);
     if (!data) {
       throw new Error(`ClassNotFoundException: ${className}`);
     }
 
-    // 4. 解析 Class 文件
+    // 5. 解析 Class 文件
     const classInfo = new ClassInfo(data);
 
-    // 5. 验证类名
+    // 6. 验证类名
     if (classInfo.thisClass !== className) {
       throw new Error(
         `NoClassDefFoundError: Expected ${className}, found ${classInfo.thisClass}`
       );
     }
 
-    // 6. 放入缓存 (在解析父类之前,防止循环依赖死循环)
+    // 7. 放入缓存 (在解析父类之前,防止循环依赖死循环)
     this.classes.set(className, classInfo);
 
-    // 7. 递归加载父类
+    // 8. 递归加载父类
     if (classInfo.superClass) {
       this.loadClass(classInfo.superClass);
     }
 
-    // 8. 递归加载接口
+    // 9. 递归加载接口
     for (const interfaceName of classInfo.interfaces) {
       this.loadClass(interfaceName);
     }

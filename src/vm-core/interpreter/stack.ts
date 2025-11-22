@@ -114,12 +114,13 @@ export class OperandStack {
 
   /**
    * 查看栈顶值
+   * @param offset 距离栈顶的偏移量（可选，默认为 0）
    */
-  peek(): JavaValue {
-    if (this.sp <= 0) {
+  peek(offset: number = 0): JavaValue {
+    if (this.sp - offset - 1 < 0) {
       throw new Error("StackUnderflowError");
     }
-    return this.stack[this.sp - 1];
+    return this.stack[this.sp - offset - 1];
   }
 
   /**

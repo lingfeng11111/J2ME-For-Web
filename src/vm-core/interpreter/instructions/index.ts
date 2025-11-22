@@ -24,6 +24,14 @@ import { StoreInstructions } from "./stores";
 import { InvokeInstructions } from "./invoke";
 import { FieldInstructions } from "./field-instructions";
 import { ArrayInstructions } from "./array-instructions";
+import { BranchInstructions } from "./branch-instructions";
+import { ConversionInstructions } from "./conversion-instructions";
+import { ComparisonInstructions } from "./comparison-instructions";
+import { StackInstructions } from "./stack-instructions";
+import { TypeInstructions } from "./type-instructions";
+import { SynchronizationInstructions } from "./sync-instructions";
+import { SwitchInstructions } from "./switch-instructions";
+import { ExceptionInstructions } from "./exception-instructions";
 
 // 导出类以确保它们被加载
 export {
@@ -34,7 +42,15 @@ export {
   StoreInstructions,
   InvokeInstructions,
   FieldInstructions,
-  ArrayInstructions
+  ArrayInstructions,
+  BranchInstructions,
+  ConversionInstructions,
+  ComparisonInstructions,
+  StackInstructions,
+  TypeInstructions,
+  SynchronizationInstructions,
+  SwitchInstructions,
+  ExceptionInstructions
 };
 
 /**

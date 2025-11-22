@@ -47,6 +47,84 @@ export class MathInstructions {
     frame.pc++;
   }
 
+  @Instruction(Opcode.IDIV)
+  static idiv(frame: Frame, thread: Thread): void {
+    const v2 = frame.stack.popInt();
+    const v1 = frame.stack.popInt();
+    if (v2 === 0) {
+      throw new Error("ArithmeticException: / by zero");
+    }
+    // Java 的整数除法是向零截断
+    frame.stack.push((v1 / v2) | 0);
+    frame.pc++;
+  }
+
+  @Instruction(Opcode.IREM)
+  static irem(frame: Frame, thread: Thread): void {
+    const v2 = frame.stack.popInt();
+    const v1 = frame.stack.popInt();
+    if (v2 === 0) {
+      throw new Error("ArithmeticException: / by zero");
+    }
+    frame.stack.push((v1 % v2) | 0);
+    frame.pc++;
+  }
+
+  @Instruction(Opcode.INEG)
+  static ineg(frame: Frame, thread: Thread): void {
+    const value = frame.stack.popInt();
+    frame.stack.push((-value) | 0);
+    frame.pc++;
+  }
+
+  @Instruction(Opcode.ISHL)
+  static ishl(frame: Frame, thread: Thread): void {
+    const shift = frame.stack.popInt() & 0x1f; // 只使用低5位
+    const value = frame.stack.popInt();
+    frame.stack.push((value << shift) | 0);
+    frame.pc++;
+  }
+
+  @Instruction(Opcode.ISHR)
+  static ishr(frame: Frame, thread: Thread): void {
+    const shift = frame.stack.popInt() & 0x1f;
+    const value = frame.stack.popInt();
+    frame.stack.push((value >> shift) | 0);
+    frame.pc++;
+  }
+
+  @Instruction(Opcode.IUSHR)
+  static iushr(frame: Frame, thread: Thread): void {
+    const shift = frame.stack.popInt() & 0x1f;
+    const value = frame.stack.popInt();
+    frame.stack.push((value >>> shift) | 0);
+    frame.pc++;
+  }
+
+  @Instruction(Opcode.IAND)
+  static iand(frame: Frame, thread: Thread): void {
+    const v2 = frame.stack.popInt();
+    const v1 = frame.stack.popInt();
+    frame.stack.push((v1 & v2) | 0);
+    frame.pc++;
+  }
+
+  @Instruction(Opcode.IOR)
+  static ior(frame: Frame, thread: Thread): void {
+    const v2 = frame.stack.popInt();
+    const v1 = frame.stack.popInt();
+    frame.stack.push((v1 | v2) | 0);
+    frame.pc++;
+  }
+
+  @Instruction(Opcode.IXOR)
+  static ixor(frame: Frame, thread: Thread): void {
+    const v2 = frame.stack.popInt();
+    const v1 = frame.stack.popInt();
+    frame.stack.push((v1 ^ v2) | 0);
+    frame.pc++;
+  }
+
   @Instruction(Opcode.LADD)
   static ladd(frame: Frame, thread: Thread): void {
     const v2 = frame.stack.popLong();
